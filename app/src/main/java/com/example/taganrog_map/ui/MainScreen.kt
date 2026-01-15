@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -25,6 +26,7 @@ sealed class Screen(val route: String, val titleRes: Int, val icon: ImageVector)
     object Map : Screen("map", R.string.nav_map, Icons.Default.LocationOn)
     object Feed : Screen("feed", R.string.nav_feed, Icons.Default.List)
     object Profile : Screen("profile", R.string.nav_profile, Icons.Default.Person)
+    object Create : Screen("create", R.string.create_initiative, Icons.Default.Add)
     object Detail : Screen("detail/{initiativeId}", R.string.app_name, Icons.Default.LocationOn) {
         fun createRoute(initiativeId: String) = "detail/$initiativeId"
     }
@@ -35,11 +37,12 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    var mapRefreshKey by rememberSaveable { mutableStateOf(0) }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* TODO: открыть форму создания инициативы */ },
+                onClick = { navController.navigate(Screen.Create.route) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Создать инициативу")
@@ -47,7 +50,9 @@ fun MainScreen() {
         },
         floatingActionButtonPosition = FabPosition.End,
         bottomBar = {
-            if (currentDestination?.route?.startsWith(Screen.Detail.route.substringBefore("/")) != true) {
+            val isDetail = currentDestination?.route?.startsWith(Screen.Detail.route.substringBefore("/")) == true
+            val isCreate = currentDestination?.route == Screen.Create.route
+            if (!isDetail && !isCreate) {
                 NavigationBar {
                     val screens = listOf(Screen.Map, Screen.Feed, Screen.Profile)
                     
@@ -78,6 +83,7 @@ fun MainScreen() {
         ) {
             composable(Screen.Map.route) {
                 MapScreen(
+                    refreshKey = mapRefreshKey,
                     onInitiativeClick = { initiativeId ->
                         navController.navigate(Screen.Detail.createRoute(initiativeId))
                     }
@@ -94,6 +100,16 @@ fun MainScreen() {
             
             composable(Screen.Profile.route) {
                 ProfileScreen()
+            }
+
+            composable(Screen.Create.route) {
+                CreateInitiativeScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onCreated = {
+                        mapRefreshKey += 1
+                        navController.popBackStack()
+                    }
+                )
             }
             
             composable(

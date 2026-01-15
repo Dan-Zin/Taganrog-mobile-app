@@ -29,6 +29,36 @@
     <string name="comment">Комментировать</string>
     <string name="author">Автор: %1$s</string>
     <string name="created_at">Создано: %1$s</string>
+
+    <!-- Create Initiative -->
+    <string name="create_initiative">Создать инициативу</string>
+    <string name="tap_to_select_location">Нажмите на карту, чтобы выбрать точку</string>
+    <string name="location_selected">Точка выбрана</string>
+    <string name="confirm_location">Подтвердить место</string>
+    <string name="change_location">Изменить место</string>
+    <string name="initiative_title">Название</string>
+    <string name="initiative_description">Описание</string>
+    <string name="initiative_category_label">Категория</string>
+    <string name="status_label">Статус</string>
+    <string name="media_section">Медиа</string>
+    <string name="media_empty">Медиа не добавлены</string>
+    <string name="take_photo">Фото</string>
+    <string name="take_video">Видео</string>
+    <string name="pick_from_gallery">Галерея</string>
+    <string name="voice_stub">Голос</string>
+    <string name="innovations_section">Инновации</string>
+    <string name="drawing_stub_title">Разметка на фото</string>
+    <string name="drawing_stub_message">Редактор разметки будет добавлен на следующем этапе.</string>
+    <string name="media_stub_title">Медиа</string>
+    <string name="media_stub_message">Съемка фото/видео будет добавлена на следующем этапе.</string>
+    <string name="ai_assistant">ИИ‑помощник</string>
+    <string name="ai_prompt_hint">Опишите проблему</string>
+    <string name="ai_suggestions_title">Варианты формулировок</string>
+    <string name="generate_action">Сгенерировать</string>
+    <string name="create_action">Создать</string>
+    <string name="create_failed">Не удалось создать инициативу</string>
+    <string name="cancel">Отмена</string>
+    <string name="ok">Ок</string>
     
     <!-- Status -->
     <string name="status_red">Срочно</string>

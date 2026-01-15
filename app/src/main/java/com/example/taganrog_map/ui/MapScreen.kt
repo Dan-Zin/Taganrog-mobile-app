@@ -3,7 +3,6 @@ package com.example.taganrog_map.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,8 +23,6 @@ import androidx.core.content.ContextCompat
 import com.example.taganrog_map.R
 import com.example.taganrog_map.data.Config
 import com.example.taganrog_map.data.InitiativeRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -57,6 +54,7 @@ private const val ICON_GREEN = "pin-green"
 
 @Composable
 fun MapScreen(
+    refreshKey: Int = 0,
     onInitiativeClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -66,13 +64,9 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     var mapStyle by remember { mutableStateOf<Style?>(null) }
     
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshKey) {
         scope.launch {
             repository.loadInitiatives()
-        }
-
-        scope.launch(Dispatchers.IO) {
-            val styleUrl = "${Config.TILE_SERVER_URL}/styles/basic-preview/style.json"
         }
     }
     
