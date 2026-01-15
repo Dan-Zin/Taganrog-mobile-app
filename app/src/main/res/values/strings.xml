@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">Таганрог</string>
+    
+    <!-- Navigation -->
+    <string name="nav_map">Карта</string>
+    <string name="nav_feed">Лента</string>
+    <string name="nav_profile">Профиль</string>
+    
+    <!-- Map Screen -->
+    <string name="search_hint">Поиск...</string>
+    <string name="layers">Слои</string>
+    <string name="filters">Фильтры</string>
+    
+    <!-- Feed Screen -->
+    <string name="feed_title">Инициативы</string>
+    <string name="initiative_category">%1$s</string>
+    <string name="votes_count">%1$d</string>
+    <string name="comments_count">%1$d</string>
+    
+    <!-- Profile Screen -->
+    <string name="profile_title">Профиль</string>
+    <string name="settings">Настройки</string>
+    <string name="about">О приложении</string>
+    <string name="logout">Выйти</string>
+    
+    <!-- Detail Screen -->
+    <string name="back">Назад</string>
+    <string name="vote">Проголосовать</string>
+    <string name="comment">Комментировать</string>
+    <string name="author">Автор: %1$s</string>
+    <string name="created_at">Создано: %1$s</string>
+    
+    <!-- Status -->
+    <string name="status_red">Срочно</string>
+    <string name="status_yellow">Важно</string>
+    <string name="status_green">Решено</string>
+    <string name="status_on_moderation">На модерации</string>
+    <string name="status_in_progress">В работе</string>
+    <string name="status_completed">Завершено</string>
+</resources>

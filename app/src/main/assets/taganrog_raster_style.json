@@ -1,0 +1,23 @@
+{
+  "version": 8,
+  "name": "Taganrog Raster",
+  "sources": {
+    "osm-raster": {
+      "type": "raster",
+      "tiles": [
+        "http://192.168.2.242:8000/tile/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "osm-raster-layer",
+      "type": "raster",
+      "source": "osm-raster",
+      "minzoom": 0,
+      "maxzoom": 19
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Reverse-proxy
+  proxy:
+    image: nginx:alpine
+    container_name: taganrog-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - tileserver
+    networks:
+      - taganrog-network
+    restart: unless-stopped
+
+  # Tile Server (уже развернут, но добавим в compose для полноты)
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: taganrog-tileserver
+    ports:
+      - "8000:80"
+    volumes:
+      - ./tiles:/data
+    environment:
+      - MBTILES=/data/taganrog.mbtiles
+    networks:
+      - taganrog-network
+    restart: unless-stopped
+
+  # PostgreSQL с PostGIS
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: taganrog-db
+    environment:
+      POSTGRES_DB: taganrog_db
+      POSTGRES_USER: taganrog_user
+      POSTGRES_PASSWORD: taganrog_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - taganrog-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taganrog_user -d taganrog_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build: ./backend
+    container_name: taganrog-api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://taganrog_user:taganrog_pass@db:5432/taganrog_db
+      - TILE_SERVER_URL=http://tileserver:80
+      - API_HOST=0.0.0.0
+      - API_PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - taganrog-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  taganrog-network:
+    driver: bridge
