@@ -1,6 +1,10 @@
 package com.example.taganrog_map.data
 
 import android.util.Log
+import com.google.gson.Gson
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,12 +59,18 @@ class InitiativeRepository {
         }
     }
 
-    suspend fun createInitiative(initiative: InitiativeCreateRequest): Initiative? {
+    suspend fun createInitiative(
+        initiative: InitiativeCreateRequest,
+        files: List<MultipartBody.Part>
+    ): Initiative? {
         return try {
             _isLoading.value = true
             _error.value = null
-            
-            val response = apiService.createInitiative(initiative)
+
+            val json = Gson().toJson(initiative)
+            val body = json.toRequestBody("application/json".toMediaType())
+            Log.d(TAG, "Sending initiative create: files=${files.size}")
+            val response = apiService.createInitiative(body, files)
             val newInitiative = response.toInitiative()
             
             // Обновляем список

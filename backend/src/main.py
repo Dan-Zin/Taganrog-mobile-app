@@ -1,16 +1,21 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 import os
+import json
+import shutil
+from pathlib import Path
+from uuid import uuid4
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
 from shapely.geometry import Point
 
-app = FastAPI(title="Taganrog Platform API", version="1.0.0")
+ROOT_PATH = os.getenv("ROOT_PATH", "")
+app = FastAPI(title="Taganrog Platform API", version="1.0.0", root_path=ROOT_PATH)
 
 # CORS
 app.add_middleware(
@@ -26,6 +31,9 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://taganrog_user:taganrog_pa
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/uploads")
+MEDIA_BASE_PATH = os.getenv("MEDIA_BASE_PATH", "/media")
+
 
 def get_db():
     db = SessionLocal()
@@ -33,6 +41,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+class MediaItem(BaseModel):
+    url: str
+    media_type: str
 
 
 # Pydantic Models
@@ -46,6 +59,7 @@ class InitiativeCreate(BaseModel):
     author_id: Optional[str] = ""
     author_name: Optional[str] = "Гражданин"
     author_role: Optional[str] = "Гражданин"
+    media: List[MediaItem] = Field(default_factory=list)
 
 
 class InitiativeResponse(BaseModel):
@@ -61,9 +75,25 @@ class InitiativeResponse(BaseModel):
     author_role: str
     created_at: datetime
     updated_at: datetime
+    media: List[MediaItem] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
+@app.on_event("startup")
+def ensure_media_storage():
+    Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS initiative_media (
+                id SERIAL PRIMARY KEY,
+                initiative_id INT NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+                url TEXT NOT NULL,
+                media_type VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """))
 
 
 @app.get("/")
@@ -74,6 +104,30 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+
+@app.post("/upload")
+async def upload_media(file: UploadFile = File(...)):
+    if not file.content_type or not file.content_type.startswith(("image/", "video/")):
+        raise HTTPException(status_code=400, detail="Only image or video files are allowed")
+
+    ext = Path(file.filename or "").suffix.lower()
+    if not ext:
+        ext = ".jpg" if file.content_type.startswith("image/") else ".mp4"
+
+    filename = f"{uuid4().hex}{ext}"
+    destination = Path(UPLOAD_DIR) / filename
+
+    with destination.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    await file.close()
+
+    return {
+        "url": f"{MEDIA_BASE_PATH}/{filename}",
+        "filename": filename,
+        "content_type": file.content_type
+    }
 
 
 @app.get("/initiatives", response_model=List[InitiativeResponse])
@@ -88,7 +142,13 @@ async def get_initiatives(
             id, title, description, status, category, address,
             ST_Y(geometry::geometry) as lat,
             ST_X(geometry::geometry) as lon,
-            author_name, author_role, created_at, updated_at
+            author_name, author_role, created_at, updated_at,
+            COALESCE(
+                (SELECT json_agg(json_build_object('url', url, 'media_type', media_type))
+                 FROM initiative_media
+                 WHERE initiative_id = initiatives.id),
+                '[]'
+            ) as media
         FROM initiatives
         WHERE 1=1
     """
@@ -109,6 +169,14 @@ async def get_initiatives(
     
     initiatives = []
     for row in rows:
+        media_raw = row.media
+        if media_raw is None:
+            media_items = []
+        elif isinstance(media_raw, str):
+            media_items = json.loads(media_raw)
+        else:
+            media_items = media_raw
+
         initiatives.append(InitiativeResponse(
             id=row.id,
             title=row.title,
@@ -121,7 +189,8 @@ async def get_initiatives(
             author_name=row.author_name or "Гражданин",
             author_role=row.author_role or "Гражданин",
             created_at=row.created_at,
-            updated_at=row.updated_at
+            updated_at=row.updated_at,
+            media=[MediaItem(**item) for item in media_items]
         ))
     
     return initiatives
@@ -135,7 +204,13 @@ async def get_initiative(initiative_id: int, db: Session = Depends(get_db)):
             id, title, description, status, category, address,
             ST_Y(geometry::geometry) as lat,
             ST_X(geometry::geometry) as lon,
-            author_name, author_role, created_at, updated_at
+            author_name, author_role, created_at, updated_at,
+            COALESCE(
+                (SELECT json_agg(json_build_object('url', url, 'media_type', media_type))
+                 FROM initiative_media
+                 WHERE initiative_id = initiatives.id),
+                '[]'
+            ) as media
         FROM initiatives
         WHERE id = :id
     """
@@ -146,6 +221,14 @@ async def get_initiative(initiative_id: int, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Initiative not found")
     
+    media_raw = row.media
+    if media_raw is None:
+        media_items = []
+    elif isinstance(media_raw, str):
+        media_items = json.loads(media_raw)
+    else:
+        media_items = media_raw
+
     return InitiativeResponse(
         id=row.id,
         title=row.title,
@@ -158,7 +241,8 @@ async def get_initiative(initiative_id: int, db: Session = Depends(get_db)):
         author_name=row.author_name or "Гражданин",
         author_role=row.author_role or "Гражданин",
         created_at=row.created_at,
-        updated_at=row.updated_at
+        updated_at=row.updated_at,
+        media=[MediaItem(**item) for item in media_items]
     )
 
 
@@ -203,12 +287,23 @@ async def create_initiative(initiative: InitiativeCreate, db: Session = Depends(
         "author_name": initiative.author_name or "Гражданин",
         "author_role": initiative.author_role or "Гражданин"
     })
-    
-    db.commit()
-    
+
     row = result.fetchone()
-    
-    # Получаем созданную инициативу
+
+    if initiative.media:
+        media_insert = """
+            INSERT INTO initiative_media (initiative_id, url, media_type)
+            VALUES (:initiative_id, :url, :media_type)
+        """
+        for item in initiative.media:
+            db.execute(text(media_insert), {
+                "initiative_id": row.id,
+                "url": item.url,
+                "media_type": item.media_type
+            })
+
+    db.commit()
+
     return await get_initiative(row.id, db)
 
 

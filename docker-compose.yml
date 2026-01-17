@@ -10,6 +10,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./uploads:/uploads:ro
     depends_on:
       - api
       - tileserver
@@ -22,7 +23,7 @@ services:
     image: maptiler/tileserver-gl:latest
     container_name: taganrog-tileserver
     ports:
-      - "8000:80"
+      - "8000:8080"
     volumes:
       - ./tiles:/data
     environment:
@@ -61,14 +62,18 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://taganrog_user:taganrog_pass@db:5432/taganrog_db
-      - TILE_SERVER_URL=http://tileserver:80
+      - TILE_SERVER_URL=http://tileserver:8080
       - API_HOST=0.0.0.0
       - API_PORT=3000
+      - ROOT_PATH=/api
+      - UPLOAD_DIR=/uploads
+      - MEDIA_BASE_PATH=/media
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./uploads:/uploads
     networks:
       - taganrog-network
     restart: unless-stopped

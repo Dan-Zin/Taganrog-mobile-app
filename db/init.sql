@@ -23,6 +23,17 @@ CREATE INDEX IF NOT EXISTS idx_initiatives_geometry ON initiatives USING GIST (g
 CREATE INDEX IF NOT EXISTS idx_initiatives_status ON initiatives (status);
 CREATE INDEX IF NOT EXISTS idx_initiatives_created_at ON initiatives (created_at DESC);
 
+-- Таблица медиа вложений инициатив
+CREATE TABLE IF NOT EXISTS initiative_media (
+    id SERIAL PRIMARY KEY,
+    initiative_id INT NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    media_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_initiative_media_initiative_id ON initiative_media (initiative_id);
+
 -- Таблица улиц (пример структуры для определения адреса)
 CREATE TABLE IF NOT EXISTS streets (
     id SERIAL PRIMARY KEY,

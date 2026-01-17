@@ -1,6 +1,8 @@
 package com.example.taganrog_map.data
 
 import com.example.taganrog_map.data.Config.API_BASE_URL
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -18,8 +20,12 @@ interface ApiService {
     @GET("initiatives/{id}")
     suspend fun getInitiative(@Path("id") id: String): InitiativeResponse
 
+    @Multipart
     @POST("initiatives")
-    suspend fun createInitiative(@Body initiative: InitiativeCreateRequest): InitiativeResponse
+    suspend fun createInitiative(
+        @Part("initiative") initiative: RequestBody,
+        @Part files: List<MultipartBody.Part>
+    ): InitiativeResponse
 
     @PUT("initiatives/{id}")
     suspend fun updateInitiative(
@@ -34,6 +40,7 @@ interface ApiService {
     suspend fun getInitiativesGeoJson(
         @Query("status") status: String? = null
     ): Map<String, Any>
+
 }
 
 object ApiClient {

@@ -13,7 +13,8 @@ data class Initiative(
     val category: String = "",
     val author: Author = Author("", "Гражданин", "Гражданин"),
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    val media: List<MediaItem> = emptyList()
 )
 
 data class Author(
@@ -28,6 +29,11 @@ enum class Status {
     GREEN
 }
 
+data class MediaItem(
+    val url: String,
+    @SerializedName("media_type") val mediaType: String
+)
+
 // DTO для API
 data class InitiativeResponse(
     val id: Int,
@@ -41,7 +47,8 @@ data class InitiativeResponse(
     @SerializedName("author_name") val authorName: String,
     @SerializedName("author_role") val authorRole: String,
     @SerializedName("created_at") val createdAt: String,
-    @SerializedName("updated_at") val updatedAt: String
+    @SerializedName("updated_at") val updatedAt: String,
+    val media: List<MediaItem>? = emptyList()
 ) {
     fun toInitiative(): Initiative {
         return Initiative(
@@ -60,10 +67,16 @@ data class InitiativeResponse(
             category = category,
             author = Author("", authorName, authorRole),
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            media = media.orEmpty()
         )
     }
 }
+
+data class MediaCreate(
+    val url: String,
+    @SerializedName("media_type") val mediaType: String
+)
 
 data class InitiativeCreateRequest(
     val title: String,
@@ -73,5 +86,12 @@ data class InitiativeCreateRequest(
     val lat: Double,
     val lon: Double,
     @SerializedName("author_name") val authorName: String = "Гражданин",
-    @SerializedName("author_role") val authorRole: String = "Гражданин"
+    @SerializedName("author_role") val authorRole: String = "Гражданин",
+    val media: List<MediaCreate> = emptyList()
+)
+
+data class UploadResponse(
+    val url: String,
+    val filename: String,
+    @SerializedName("content_type") val contentType: String
 )

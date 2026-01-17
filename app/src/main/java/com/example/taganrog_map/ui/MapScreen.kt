@@ -24,6 +24,7 @@ import com.example.taganrog_map.R
 import com.example.taganrog_map.data.Config
 import com.example.taganrog_map.data.InitiativeRepository
 import kotlinx.coroutines.launch
+import android.util.Log
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -61,18 +62,16 @@ fun MapScreen(
     var searchQuery by remember { mutableStateOf("") }
     val repository = remember { InitiativeRepository() }
     val initiatives by repository.initiatives.collectAsState()
-    val scope = rememberCoroutineScope()
     var mapStyle by remember { mutableStateOf<Style?>(null) }
-    
+
     LaunchedEffect(refreshKey) {
-        scope.launch {
-            repository.loadInitiatives()
-        }
+        repository.loadInitiatives()
     }
     
     // Обновляем карту при изменении инициатив
     LaunchedEffect(initiatives, mapStyle) {
         mapStyle?.let { style ->
+            Log.d(TAG, "Updating map with ${initiatives.size} initiatives")
             val features: List<Feature> = initiatives.map { i ->
                 Feature.fromGeometry(Point.fromLngLat(i.lon, i.lat)).apply {
                     addStringProperty("id", i.id)
@@ -96,6 +95,7 @@ fun MapScreen(
                     val styleUrl = "${Config.TILE_SERVER_URL}/styles/basic-preview/style.json"
                     map.setStyle(Style.Builder().fromUri(styleUrl)) { style ->
                         mapStyle = style
+                    Log.d(TAG, "Map style ready, initiatives=${initiatives.size}")
                         // Центр Таганрога
                         map.cameraPosition = CameraPosition.Builder()
                             .target(LatLng(47.236, 38.897))
@@ -103,7 +103,7 @@ fun MapScreen(
                             .build()
 
                         // Ограничения зума
-                        map.setMinZoomPreference(11.0)
+                    map.setMinZoomPreference(12.0)
                         map.setMaxZoomPreference(19.0)
 
                         // Ограничение области (bounds Таганрога)
